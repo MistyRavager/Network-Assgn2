@@ -1,0 +1,1 @@
+# this is the proposer in the paxos algorithm
