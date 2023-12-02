@@ -5,6 +5,11 @@ import json
 import threading
 import sys
 
+# make a lock for the shared variables
+lock_Np = threading.Lock()
+lock_Na = threading.Lock()
+lock_va = threading.Lock()
+
 N_promised = 0 # The highest proposal number proposed to this accepter
 N_acc = 0 # The highest proposal number accepted by this accepter
 v_acc = 0
@@ -34,28 +39,43 @@ def process(clientsocket, addr):
     res_msg = None
 
     type, N_proposed = msg['type'], msg['proposal_number']
+    lock_Np.acquire()
     if N_proposed < N_promised:
         res_msg = {'type':'reject'}
         clientsocket.send(json.dumps(res_msg).encode('ascii'))
+        lock_Np.release()
         return
+    lock_Np.release()
     
     if type == 'promise':
+        lock_Na.acquire()
         if N_acc > 0:
             res_msg = {'type':'promise', 'proposal_number':N_acc, 'value':v_acc}
         else:
             res_msg = {'type':'promise'}
+        lock_Na.release()
 
+        lock_Np.acquire()
         N_promised = N_proposed
+        lock_Np.release()
     elif type == 'commit':
         if not 'value' in msg:
             res_msg = {'type':'reject'}
             clientsocket.send(json.dumps(res_msg).encode('ascii'))
             return
+        
+        lock_Np.acquire()
         if N_proposed != N_promised:
             res_msg = {'type':'reject'}
             clientsocket.send(json.dumps(res_msg).encode('ascii'))
+            lock_Np.release()
             return
+        lock_Np.release()
+        lock_Na.acquire()
+        lock_va.acquire()
         N_acc, v_acc = N_proposed, msg['value']
+        lock_va.release()
+        lock_Na.release()
         res_msg = {'type':'ack'}
 
     print(f"Sending {res_msg}")
