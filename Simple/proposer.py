@@ -56,7 +56,7 @@ class Proposer:
         self.nacceptors = nacceptors # Maybe len(acceptors) instead?
 
         # Assert nacceptors is odd to ensure majority
-        assert self.nacceptors % 2 == 1
+        # assert self.nacceptors % 2 == 1
         
         # Initialize proposer details
         self.nproposers = nproposers

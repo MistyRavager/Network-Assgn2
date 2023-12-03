@@ -34,6 +34,10 @@ class Acceptor:
         self.id = id
         self.nacceptors = nacceptors
 
+        self.lock_acc_num = threading.Lock()
+        self.lock_acc_val = threading.Lock()
+        self.lock_pro_num = threading.Lock()
+
         # Initialize promise number and accepted value pair
         self.promised_number = 0
         self.accepted_number = 0
@@ -51,15 +55,21 @@ class Acceptor:
             We then send the Promise back to the proposer.
         """
 
+        self.lock_pro_num.acquire()
         if message.proposal_number <= self.promised_number:
             prom = Promise(self.id, message.sender_id, self.promised_number, None, None, 'rejected')
         else:
             self.promised_number = message.proposal_number
+            self.lock_acc_num.acquire()
+            self.lock_acc_val.acquire()
             if self.has_accepted:
                 prom = Promise(self.id, message.sender_id, self.promised_number, self.accepted_number, self.accepted_value, 'accepted')
             else:
                 prom = Promise(self.id, message.sender_id, self.promised_number, None, None, 'accepted')
+            self.lock_acc_val.release()
+            self.lock_acc_num.release()
 
+        self.lock_pro_num.release()
         # Send prom
         # TBD
 
@@ -77,15 +87,21 @@ class Acceptor:
             accept-request messages with proposal numbers less than the promised number.
         """
         
+        self.lock_pro_num.acquire()
         if message.proposal_number < self.promised_number:
             ack = Ack(self.id, message.sender_id, self.accepted_number, self.accepted_value, 'rejected')
         else:
+            self.lock_acc_num.acquire()
+            self.lock_acc_val.acquire()
             self.has_accepted = True
             self.promised_number = message.proposal_number
             self.accepted_number = message.proposal_number
             self.accepted_value = message.value
             ack = Ack(self.id, message.sender_id, self.accepted_number, self.accepted_value, 'accepted')
-        
+            self.lock_acc_val.release()
+            self.lock_acc_num.release()
+
+        self.lock_pro_num.release()
         # Send ack
         # TBD
     
