@@ -1,7 +1,8 @@
-""" The following code is the class for the acceptor process for the Paxos algorithm. """
+""" The following code is the class for the acceptor process
+ for the Paxos algorithm. """
 
 # Import the necessary libraries.
-from message import *
+from message import Message, Prepare, Promise, AcceptRequest, Ack
 import json
 import socket
 import sys
@@ -9,25 +10,28 @@ import threading
 from typing import Tuple
 
 # Class Definitions
+
+
 class Acceptor:
+
     # Initializer
-    def __init__ (self, id:int, nacceptors:int):
+    def __init__(self, id: int, nacceptors: int):
         """
-            Initializes acceptor process with following attributes:
-                id: int
-                    Unique ID of every acceptor.
-                nacceptors: int
-                    Total number of acceptors to keep track of majority.
-                promised_number: int
-                    The number of the highest numbered proposal it has "adopted".
-                    Consequently, all the proposals numbered less than this number
-                    will be ignored/rejected by the acceptor.
-                accepted_number: int
-                    The number of the highest numbered proposal it has "accepted".
-                accepted_value: *
-                    The present consensus value.
-                has_accepted: bool
-                    Whether the acceptor has accepted a value or not.
+        Initializes acceptor process with following attributes:
+            id: int
+                Unique ID of every acceptor.
+            nacceptors: int
+                Total number of acceptors to keep track of majority.
+            promised_number: int
+                The number of the highest numbered proposal it has "adopted".
+                Consequently, all the proposals numbered less than this number
+                will be ignored/rejected by the acceptor.
+            accepted_number: int
+                The number of the highest numbered proposal it has "accepted".
+            accepted_value: *
+                The present consensus value.
+            has_accepted: bool
+                Whether the acceptor has accepted a value or not.
         """
 
         # Initialize host details
@@ -45,36 +49,57 @@ class Acceptor:
         self.has_accepted = False
     
     # Function to receive messages from proposer
-    def receive_proposal(self, message:Prepare) -> None:
+    def receive_proposal(self, message: Prepare) -> Promise:
         """
-            Receives proposal from proposer. If the proposal number does not exceed
-            the promised number, the proposal is rejected.
-            Otherwise, the proposal is accepted and the promised number is accepted.
-            If the acceptor has already accepted a value, it also sends the accepted 
-            number-value pair to the proposer.
+            Receives proposal from proposer. If the proposal number does
+            not exceed the promised number, the proposal is rejected.
+            Otherwise, the proposal is accepted and the promised number is
+            accepted.
+            If the acceptor has already accepted a value, it also sends the
+            accepted number-value pair to the proposer.
             We then send the Promise back to the proposer.
         """
 
         self.lock_pro_num.acquire()
         if message.proposal_number <= self.promised_number:
-            prom = Promise(self.id, message.sender_id, self.promised_number, None, None, 'rejected')
+            prom = Promise(
+                self.id,
+                message.sender_id,
+                self.promised_number,
+                None,
+                None,
+                'rejected'
+                )
         else:
             self.promised_number = message.proposal_number
             self.lock_acc_num.acquire()
             self.lock_acc_val.acquire()
             if self.has_accepted:
-                prom = Promise(self.id, message.sender_id, self.promised_number, self.accepted_number, self.accepted_value, 'accepted')
+                prom = Promise(
+                    self.id, 
+                    message.sender_id, 
+                    self.promised_number, 
+                    self.accepted_number, 
+                    self.accepted_value, 
+                    'accepted'
+                )
             else:
-                prom = Promise(self.id, message.sender_id, self.promised_number, None, None, 'accepted')
+                prom = Promise(
+                    self.id,
+                    message.sender_id,
+                    self.promised_number,
+                    None,
+                    None,
+                    'accepted'
+                )
             self.lock_acc_val.release()
             self.lock_acc_num.release()
 
-        self.lock_pro_num.release()
-        # Send prom
-        # TBD
+        self.lock_pro_num.release()        # Send prom
+        return prom
 
     # Function to receive accept message from proposer
-    def receive_accept_request(self, message:AcceptRequest) -> None:
+    def receive_accept_request(self, message: AcceptRequest) -> Ack:
         """
             Receives accept-request message from proposer. If the proposal number 
             does not exceed the promised number, the proposal is rejected.
@@ -103,18 +128,20 @@ class Acceptor:
 
         self.lock_pro_num.release()
         # Send ack
-        # TBD
+        return ack
     
     # Main Handler Function
-    def handle(self, message:Message) -> None:
+    def handle(self, message: Message) -> Message:
         """
             Handles received message from proposer.
         """
 
         # If prepare message received
-        if type(message) == Prepare:
-            self.receive_proposal(message)
+        if type(message) is Prepare:
+            msg = self.receive_proposal(message)
         
         # If accept-request message received
-        elif type(message) == AcceptRequest:
-            self.receive_accept_request(message)
+        elif type(message) is AcceptRequest:
+            msg = self.receive_accept_request(message)
+        
+        return msg

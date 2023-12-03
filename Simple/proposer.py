@@ -8,11 +8,24 @@ import sys
 import threading
 import random
 from typing import Tuple, List
+from threading import Event, Thread
+from dir import *
+import numpy as np
 
 # Class Definitions
 class Proposer:
     # Initializer
-    def __init__ (self, id:int, nproposers:int, acceptors:List[int], nacceptors:int, exponential_backoff:bool=False, randomize_acceptors:bool=False, wait_time:float|None=None):
+    def __init__ (
+                self, 
+                id:int, 
+                nproposers:int, 
+                acceptors:List[int], 
+                nacceptors:int, 
+                exponential_backoff:bool=False, 
+                randomize_acceptors:bool=False, 
+                wait_time:float|None=None,
+                timer:Sleep=None,
+            ):
         """
             Initializes proposer process with following attributes:
                 id: int
@@ -64,8 +77,10 @@ class Proposer:
         self.randomize_acceptors = randomize_acceptors
         self.wait_time = wait_time
 
+        self.timer = timer
+
         # Initialize proposal number and value
-        self.proposal_number = 0
+        self.proposal_number = id
         self.value = 0
         self.prev_number = 0
         self.prev_value = 0
@@ -74,6 +89,14 @@ class Proposer:
         self.accepted_count = 0
         self.rejected_count = 0
         self.majority_list = []
+
+        # Initialize max received vals and flags
+        self.received_max = False
+        self.max_proposal_number = float('-inf')
+        self.max_value = None
+
+        # Consensus value
+        self.consensus_value = None
 
     # Function to generate a majority list of acceptors
     def generate_majority(self) -> List[int]:
@@ -86,36 +109,64 @@ class Proposer:
         select = random.randint(min_majority, self.nacceptors)
 
         # Return a random sample of acceptors
-        return random.sample(self.acceptors, select)
+        return random.sample(sorted(self.acceptors), select)
 
     # Function to prepare proposal
-    def prepare_proposal(self, value: int) -> Tuple[int, List[int]]:
+    def prepare_proposal(self, value: int) -> List[Prepare]:
         """
             Prepares proposal by sending prepare message to acceptors.
             Also identifies a majority of acceptors to send message to.
         """
 
+        prepare_list = []
+        self.refresh()
+
         # Increment proposal number
-        self.proposal_number += 1
+        self.proposal_number += self.nproposers
 
         # Generate majority list of acceptors
         majority = self.generate_majority()
         self.majority_list = majority
 
+        for acceptor in majority:
+            # Send Prepare Message : TBD
+            prepare = Prepare(self.id, acceptor, self.proposal_number)
+            prepare_list.append(prepare)
+
         # Return proposal number and majority list
-        return self.proposal_number, majority
+        # return self.proposal_number, majority
+        return prepare_list
     
     # Function to send a an accept-request message to acceptors
-    def send_accept_request(self, proposal_number: int, value: int, majority: List[int]) -> Tuple[int, int, List[int]]:
+    def send_accept_request(self, value: int) -> List[AcceptRequest]:
         """
             Sends accept-request message to acceptors.
             Also identifies a majority of acceptors to send message to.
         """
 
+        # Set accepted and rejected counts to default
+        self.accepted_count = 0
+        self.rejected_count = 0
+
+        commit_list = []
+
         # Iterate through majority list to send accept-request message
         for acceptor in self.majority_list:
-            commit = AcceptRequest(self.id, acceptor, proposal_number, value)
-            #Send Commit Message : TBD
+            if self.received_max:
+                commit = (self.id, acceptor, self.proposal_number, self.max_value)
+                print(f'Kg1111')
+                self.consensus_value = self.max_value
+            else:
+                commit = AcceptRequest(self.id, acceptor, self.proposal_number, value)
+                self.consensus_value = value
+            commit_list.append(commit)
+
+
+            print(f'Kg2222 {self.consensus_value}')
+
+            #Send Commit Message : TBD        
+        
+        return commit_list
 
     # Check if rejected
     def is_rejected(self) -> bool:
@@ -123,7 +174,7 @@ class Proposer:
             Checks if proposal has been rejected.
         """
 
-        return self.rejected_count >= (self.nacceptors + 1) // 2
+        return self.accepted_count < (self.nacceptors + 1) // 2
     
     # Handle received promise message or acknowledgement from acceptors
     def handle(self, message: Message) -> None:
@@ -137,10 +188,19 @@ class Proposer:
             # Increment accepted count
             self.accepted_count += 1
 
+            # Check if message has accepted number and value
+            if (message.prev_accepted_number is not None) and (message.prev_accepted_value is not None):
+                self.received_max = True
+                # Update max proposal number and value
+                if message.prev_accepted_number > self.max_proposal_number:
+                    self.max_proposal_number = message.prev_accepted_number
+                    self.max_value = message.prev_accepted_value
+
             # If majority of acceptors have accepted
             if self.accepted_count >= (self.nacceptors + 1) // 2:
                 # Send accept-request message
-                # Interrupt sleep (TBD)
+                # Interrupt sleep 
+                self.wake(self.timer)
                 pass
 
         # If promise-reject message received
@@ -151,13 +211,56 @@ class Proposer:
             # If majority of acceptors have rejected
             if self.rejected_count >= (self.nacceptors + 1) // 2:
                 # Send prepare message
-                # Interrupt sleep (TBD)
+                # Interrupt sleep 
+                self.wake(self.timer)
                 pass
 
         # If ack-accept message received
-        elif (type(message) == Ack) and (self.proposal_number == message.proposal_number) and (message.result == 'accepted'):
-            pass
+        elif (type(message) == Ack) and (self.proposal_number == message.consensus_number) and (message.result == 'accepted'):
+            print(f'Kg3333 {message.consensus_value}')
+            # Increment accepted count
+            self.accepted_count += 1
+
+            # If majority of acceptors have accepted
+            if self.accepted_count >= (self.nacceptors + 1) // 2:
+                # Send accept-request message
+                # Interrupt sleep 
+                self.wake(self.timer)
+                pass
 
         # If ack-reject message received
-        elif (type(message) == Ack) and (self.proposal_number == message.proposal_number) and (message.result == 'rejected'):
-            pass
+        elif (type(message) == Ack) and (self.proposal_number == message.consensus_number) and (message.result == 'rejected'):
+            print(f'Kg4444 {message.consensus_value}')
+            # Increment rejected count
+            self.rejected_count += 1
+
+            # If majority of acceptors have rejected
+            if self.rejected_count >= (self.nacceptors + 1) // 2:
+                # Send prepare message
+                # Interrupt sleep 
+                self.wake(self.timer)
+                pass
+    
+    def refresh(self):
+        """ 
+        Set values to default before new proposal
+        """
+
+        # Set received flags and max values to default
+        self.received_max = False
+        self.max_proposal_number = float('-inf')
+        self.max_value = None
+
+        # Set accepted and rejected counts to default
+        self.accepted_count = 0
+        self.rejected_count = 0
+        self.consensus_value = None
+
+    
+    def wake(self, sleeper):
+        """
+        Wake up the Sleep object
+        """
+        sleeper.wake()
+
+
