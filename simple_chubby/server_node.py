@@ -73,29 +73,18 @@ def make_message(type: str, value: str) -> str:
 
 
 try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.bind((host, port))
+    print('Server listening....')
+    
     while True:
-        # listen to incoming connections using sockets
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.bind((host, port))
-        s.listen(5)  # maybe make this only 1 connection at a time?
-        print('Server listening....')
-
-        # accept connection
-        conn, addr = s.accept()
-        print('Got connection from', addr)
-
-        # receive data from client
-        data = conn.recv(1024)
-        if not data:
-            break
-        else:
-            return_message = parse_message(data.decode('utf-8'))
-            if return_message is not None:
-                conn.send(return_message.encode('utf-8'))
-
-        conn.close()
-        s.close()
+        data, addr = s.recvfrom(1024)
+        print('Server received message from', addr)
+        response = parse_message(data.decode('utf-8'))
+        if response:
+            s.sendto(response.encode('utf-8'), addr)
 
 except KeyboardInterrupt:
+    s.close()
     print('Interrupted')
     sys.exit(1)
