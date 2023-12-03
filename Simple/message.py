@@ -3,11 +3,12 @@
 # Import the necessary libraries.
 import json
 import sys
+from typing import Literal
 
 # Class Definitions
 class Message:
     # Initializer
-    def __init__ (self, sender_id: int, receiver_id: int):
+    def __init__ (self, sender_id: int, receiver_id: int, message_type: Literal['prepare', 'promise', 'accept-request', 'ack']):
         """
             Initializes message with following attributes:
                 sender_id: int
@@ -17,11 +18,12 @@ class Message:
         """
 
         # Assert that the message type is valid
-        # assert message_type in ['prepare', 'promise', 'accept-request', 'ack']
+        assert message_type in ['prepare', 'promise', 'accept-request', 'ack']
 
         # Initialize message headers
         self.sender_id = sender_id
         self.receiver_id = receiver_id
+        self.message_type = message_type
 
 # Prepare Class
 class Prepare(Message):
@@ -34,7 +36,7 @@ class Prepare(Message):
         """
 
         # Initialize message headers
-        super().__init__(sender_id, receiver_id)
+        super().__init__(sender_id, receiver_id, 'prepare')
 
         # Initialize prepare message details
         self.proposal_number = proposal_number
@@ -42,7 +44,7 @@ class Prepare(Message):
 # Promise Class
 class Promise(Message):
     # Initializer
-    def __init__ (self, sender_id: int, receiver_id: int, proposal_number: int, prev_accepted_number: int, prev_accepted_value: int, result: str):
+    def __init__ (self, sender_id: int, receiver_id: int, proposal_number: int, prev_accepted_number: int | None, prev_accepted_value: int | None, result: Literal['accepted', 'rejected']):
         """
             Initializes promise message with following attributes:
                 proposal_number: int
@@ -55,7 +57,7 @@ class Promise(Message):
         """
 
         # Initialize message headers
-        super().__init__(sender_id, receiver_id)
+        super().__init__(sender_id, receiver_id, 'promise')
 
         # Assert that the result type is valid
         assert result in ['accepted', 'rejected']
@@ -79,16 +81,17 @@ class AcceptRequest(Message):
         """
 
         # Initialize message headers
-        super().__init__(sender_id, receiver_id)
+        super().__init__(sender_id, receiver_id, 'accept-request')
 
         # Initialize accept-request message details
         self.proposal_number = proposal_number
         self.value = value
 
-# Ack Class
+# Response to AcceptRequest
+# Sent from Acceptor to Proposer
 class Ack(Message):
     # Initializer
-    def __init__ (self, sender_id: int, receiver_id: int, consensus_number: int, consensus_value: int, result: str):
+    def __init__ (self, sender_id: int, receiver_id: int, consensus_number: int, consensus_value: int, result: Literal['accepted', 'rejected']):
         """
             Initializes ack message with following attributes:
                 proposal_number: int
@@ -96,7 +99,7 @@ class Ack(Message):
         """
 
         # Initialize message headers
-        super().__init__(sender_id, receiver_id)
+        super().__init__(sender_id, receiver_id, 'ack')
 
         # Assert that the result type is valid
         assert result in ['accepted', 'rejected']

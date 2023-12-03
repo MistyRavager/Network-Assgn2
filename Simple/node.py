@@ -58,7 +58,7 @@ class Node:
             # TBD
 
             # Check if proposal was rejected
-            if self.proposer.rejected():
+            if self.proposer.is_rejected():
                 # If proposal was rejected, try again
                 continue
             else:

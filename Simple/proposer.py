@@ -7,19 +7,19 @@ import socket
 import sys
 import threading
 import random
-from typing import Tuple
+from typing import Tuple, List
 
 # Class Definitions
 class Proposer:
     # Initializer
-    def __init__ (self, id:int, nproposers:int, acceptors:list(int), nacceptors:int, exponential_backoff:bool=False, randomize_acceptors:bool=False, wait_time:float=None):
+    def __init__ (self, id:int, nproposers:int, acceptors:List[int], nacceptors:int, exponential_backoff:bool=False, randomize_acceptors:bool=False, wait_time:float|None=None):
         """
             Initializes proposer process with following attributes:
                 id: int
                     Unique ID of every proposer.
                 nproposers: int
                     Total number of proposers.
-                acceptors: list(int)
+                acceptors: List[int]
                     List of acceptor IDs.
                 nacceptors: int
                     Total number of acceptors to keep track of majority.
@@ -42,7 +42,7 @@ class Proposer:
                     The number of acceptors that have accepted the proposal.
                 rejected_count: int
                     The number of acceptors that have rejected the proposal.
-                majority_list: list(int)
+                majority_list: List[int]
                     The current majority list of acceptors to send prepare message to
                     or accept-request message to.
         """
@@ -56,8 +56,8 @@ class Proposer:
         self.nacceptors = nacceptors # Maybe len(acceptors) instead?
 
         # Assert nacceptors is odd to ensure majority
-        # assert self.nacceptors % 2 == 1
-        
+        assert self.nacceptors % 2 == 1
+
         # Initialize proposer details
         self.nproposers = nproposers
         self.exponential_backoff = exponential_backoff
@@ -76,7 +76,7 @@ class Proposer:
         self.majority_list = []
 
     # Function to generate a majority list of acceptors
-    def generate_majority(self) -> list(int):
+    def generate_majority(self) -> List[int]:
         """
             Generates a majority list of acceptors to send prepare message to.
         """
@@ -89,7 +89,7 @@ class Proposer:
         return random.sample(self.acceptors, select)
 
     # Function to prepare proposal
-    def prepare_proposal(self, value: int) -> Tuple[int, list(int)]:
+    def prepare_proposal(self, value: int) -> Tuple[int, List[int]]:
         """
             Prepares proposal by sending prepare message to acceptors.
             Also identifies a majority of acceptors to send message to.
@@ -106,7 +106,7 @@ class Proposer:
         return self.proposal_number, majority
     
     # Function to send a an accept-request message to acceptors
-    def send_accept_request(self, proposal_number: int, value: int, majority: list(int)) -> Tuple[int, int, list(int)]:
+    def send_accept_request(self, proposal_number: int, value: int, majority: List[int]) -> Tuple[int, int, List[int]]:
         """
             Sends accept-request message to acceptors.
             Also identifies a majority of acceptors to send message to.
@@ -118,7 +118,7 @@ class Proposer:
             #Send Commit Message : TBD
 
     # Check if rejected
-    def check_rejected(self) -> bool:
+    def is_rejected(self) -> bool:
         """
             Checks if proposal has been rejected.
         """
