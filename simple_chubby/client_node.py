@@ -5,7 +5,7 @@ import socket
 import sys
 
 server_port = 5000
-server_host = 'localhost'
+server_host = '127.0.0.1'
 
 client = Client(server_port, server_host, 1, 3)
 
@@ -16,6 +16,7 @@ def send_keepalive():
         message = client.make_message('keepalive')
         s.sendto(message.encode(), (server_host, server_port))
         response, addr = s.recvfrom(1024)
+        print(response, addr)
         if addr == (server_host, server_port):
             if client.check_keepalive_response(response.decode()):
                 time.sleep(client.sleep_time)
@@ -33,8 +34,12 @@ try:
 
     while True:
         message = client.make_message('request')
+        print(message)
         s.sendto(message.encode(), (server_host, server_port))
         response, addr = s.recvfrom(1024)
+        print("-------------------")
+        print(response, addr)
+        print("-------------------")
         if addr == (server_host, server_port):
             if client.check_lock_response(response.decode()):
                 send_keepalive()

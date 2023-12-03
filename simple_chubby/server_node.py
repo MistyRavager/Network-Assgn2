@@ -6,7 +6,7 @@ import threading
 import socket
 import json
 
-host = 'localhost'
+host = '127.0.0.1'
 port = 5000
 
 server = Server(port, host, 5)
