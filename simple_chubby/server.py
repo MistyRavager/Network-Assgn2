@@ -6,41 +6,38 @@ import threading
 
 
 class Server:
-    def __init__(self, port: int, host: int, timeout_limit: int) -> None:
+    def __init__(self, port: int, host: str, timeout_limit: int) -> None:
         self.port = port
         self.host = host
         self.lock = threading.Lock()
         self.current_master = None
-        self.last_ack = None
+        self.last_keepalive = None
         self.timeout_limit = timeout_limit
 
     def get_current_master(self):
-        self.lock.acquire()
-        master = self.current_master
-        self.lock.release()
-        return master
+        with self.lock:
+            return self.current_master
 
     def timeout(self):
-        self.lock.acquire()
-        if self.last_ack is not None:
-            if time.time() - self.last_ack > self.timeout_limit:
+        with self.lock:
+            if self.last_keepalive is None:
+                # nothing to do
+                return
+            elif time.time() - self.last_keepalive > self.timeout_limit:
+                # no keepalive received from current master, so reset
                 self.current_master = None
-                self.last_ack = None
-        self.lock.release()
+                self.last_keepalive = None
 
-    def set_ack(self, id: int):
-        self.lock.acquire()
-        if self.current_master == id:
-            self.last_ack = time.time()
-        self.lock.release()
+    def handle_keepalive(self, id: int):
+        with self.lock:
+            if self.current_master == id:
+                self.last_keepalive = time.time()
 
-    def handle_request(self, id: int): 
-        self.lock.acquire()
-        if self.current_master is None:
-            self.current_master = id
-            self.last_ack = time.time()
-            self.lock.release()
-            return True
-        else:
-            self.lock.release()
-            return False
+    def handle_request(self, id: int):
+        with self.lock:
+            if self.current_master is None:
+                self.current_master = id
+                self.last_keepalive = time.time()
+                return True
+            else:
+                return False
