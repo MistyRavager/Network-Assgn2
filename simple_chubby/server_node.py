@@ -16,7 +16,8 @@ server = Server(port, host, 5)
 def check_timeout():
     global server
     while True:
-        server.timeout()
+        for i in range(server.num_locks):
+            server.timeout(i)
         time.sleep(server.timeout_limit/2)
 
 
@@ -30,6 +31,7 @@ def parse_message(string: str) -> str:
         server sends message in the form of a json string:
         {
             "type": "keepalive"/"request",
+            "lock_num": int,
             "value": "ack"/"nak"
         }
         This parses the message and calls the appropriate server method
@@ -37,36 +39,38 @@ def parse_message(string: str) -> str:
     global server
     message = json.loads(string)
     if message['type'] == 'keepalive':
-        if server.handle_keepalive(message['id']):
-            print('Server received keepalive from', message['id'])
-            return make_message('keepalive', 'ack')
+        if server.handle_keepalive(message['id'], message['lock_num']):
+            print(f"Server received keepalive from {message['id']} for lock {message['lock_num']}")
+            return make_message('keepalive', 'ack', message['lock_num'])
         else:
-            print('Server received invalid keepalive from', message['id'])
-            return make_message('keepalive', 'nak')
+            print(f"Server received invalid keepalive from {message['id']} for lock {message['lock_num']}")
+            return make_message('keepalive', 'nak', message['lock_num'])
     elif message['type'] == 'request':
-        if server.handle_request(message['id']):
-            print('Server granted request to', message['id'])
-            return make_message('request', 'ack')
+        if server.handle_request(message['id'], message['lock_num']):
+            print(f"Server granted request to {message['id']} for lock {message['lock_num']}")
+            return make_message('request', 'ack', message['lock_num'])
         else:
-            print('Server denied request to', message['id'])
-            return make_message('request', 'nak')
+            print(f"Server denied request to {message['id']} for lock {message['lock_num']}")
+            return make_message('request', 'nak', message['lock_num'])
     else:
         print('Invalid message type')
     return None
 
 
-def make_message(type: str, value: str) -> str:
+def make_message(type: str, value: str, lock_num: int) -> str:
     '''
         make_message() creates a json string to send back to the client
 
         server sends message in the form of a json string:
         {
             "type": "keepalive"/"request",
+            "lock_num": int,
             "value": "ack"/"nak"
         }
     '''
     message = {
         'type': type,
+        'lock_num': lock_num,
         'value': value
     }
     return json.dumps(message)

@@ -14,12 +14,13 @@ class Client:
         self.id = id
         self.sleep_time = sleep_time
 
-    def make_message(self, type: Literal['request', 'keepalive']) -> str:
+    def make_message(self, type: Literal['request', 'keepalive'], lock_num: int) -> str:
         '''
         makes a json string to send to the server
         '''
         message = {
             'type': type,
+            'lock_num': lock_num,
             'id': self.id
         }
         return json.dumps(message)
@@ -32,10 +33,10 @@ class Client:
         '''
         message = json.loads(message)
         if message['value'] == 'ack':
-            print(f'Lock granted for {self.id}')
+            # print(f'Lock granted for {self.id}')
             return True
         else:
-            print(f'Lock denied for {self.id}')
+            # print(f'Lock denied for {self.id}')
             return False
         
     def check_keepalive_response(self, message: str) -> bool:
@@ -44,8 +45,8 @@ class Client:
         '''
         message = json.loads(message)
         if message['value'] == 'ack':
-            print(f'Keepalive ack for {self.id}')
+            # print(f'Keepalive ack for {self.id}')
             return True
         else:
-            print(f'Keepalive nak for {self.id}')
+            # print(f'Keepalive nak for {self.id}')
             return False
