@@ -75,7 +75,7 @@ def make_message(type: str, value: str) -> str:
 try:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.bind((host, port))
-    print('Server listening....')
+    print('Server ready....')
     
     while True:
         data, addr = s.recvfrom(1024)

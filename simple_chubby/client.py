@@ -14,27 +14,19 @@ class Client:
         self.id = id
         self.sleep_time = sleep_time
 
-    def send_message(self, type: Literal['request', 'keepalive']) -> str:
+    def make_message(self, type: Literal['request', 'keepalive']) -> str:
         '''
-        Sends message to server
-        Message format: {"type": "request"/"keepalive", "id": id}
-        Returns response from server
+        makes a json string to send to the server
         '''
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            message = {
-                'type': type,
-                'id': self.id
-            }
-            s.sendto(json.dumps(message).encode(), (self.server_host, self.server_port))
-            data, addr = s.recvfrom(1024)
-            if addr == (self.server_host, self.server_port):
-                return data.decode()
-            else:
-                return None
-        
+        message = {
+            'type': type,
+            'id': self.id
+        }
+        return json.dumps(message)
+    
             
     
-    def handle_lock_response(self, message: str) -> bool:
+    def check_lock_response(self, message: str) -> bool:
         '''
         Handles lock response from server for lock request
         '''
@@ -46,14 +38,13 @@ class Client:
             print(f'Lock denied for {self.id}')
             return False
         
-    def handle_keepalive_response(self, message: str) -> bool:
+    def check_keepalive_response(self, message: str) -> bool:
         '''
         Handles response from server for keepalive
         '''
         message = json.loads(message)
         if message['value'] == 'ack':
             print(f'Keepalive ack for {self.id}')
-            time.sleep(self.sleep_time)
             return True
         else:
             print(f'Keepalive nak for {self.id}')
