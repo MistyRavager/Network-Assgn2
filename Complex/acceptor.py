@@ -86,6 +86,6 @@ class Acceptor():
 
                 # print(f"{self.id}: Sending {msg} to {addr}")
                 
-                sock.sendto(json.dumps(res.to_json()).encode('ascii'), addr)
+                sock.sendto(res.to_json().encode('ascii'), addr)
                 
                 # print(f"{self.id}: Sent {msg} to {addr}")

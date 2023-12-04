@@ -8,8 +8,8 @@ class Star(Topo):
         ss = self.addSwitch('s0x')
         ssl = [self.addLink(f's{i}', 's0x') for i in range(5)]
 
-        client = self.addHost('h0x')
+        client = self.addHost('hx')
         # clinks = [self.addLink('h0x', f's{i}') for i in range(5)]
-        clink = self.addLink('h0x', 's0x')
+        clink = self.addLink('hx', 's0x')
 
 topos = {'star': (lambda: Star())}

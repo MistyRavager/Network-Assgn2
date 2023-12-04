@@ -3,7 +3,7 @@ import threading
 
 
 c = Client(0)
-threading.Thread(c.listen).start()
+threading.Thread(target=c.listen).start()
 
 while True:
     c.issue_request(input('Whatchu want?'))

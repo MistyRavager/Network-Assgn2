@@ -47,7 +47,7 @@ class Client:
         self.count += 1
 
         # Create a new request
-        request = Request(command)
+        request = Request(MessageType.REQUEST, command)
         return request
     
     # Listen for responses

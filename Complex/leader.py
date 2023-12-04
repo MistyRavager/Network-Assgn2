@@ -133,8 +133,5 @@ class Leader:
         while True:
             data, addr = self.sock.recvfrom(1024)
             data = data.decode()
-            print(data)
             msg = json.loads(data)
-            print(msg)
-            print(type(msg))
             self.handle(msg)
