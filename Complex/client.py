@@ -58,8 +58,7 @@ class Client:
 
         while True:
             data, addr = sock.recvfrom(1024)
-            response = json.loads(data.decode('ascii'))
-            response = Response.from_json(response)
+            response = Response.from_json(data)
             print("Client", self.id, "received response:", response.result)
 
             # Generate 10 char random string/ lock service

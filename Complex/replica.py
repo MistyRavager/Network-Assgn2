@@ -71,7 +71,7 @@ class Replica:
         self.comm_lock = threading.Lock()
 
 
-    def propose(self) -> List(Propose):
+    def propose(self) -> List[Propose]:
         """
             The propose function is responsible for proposing the next 
             request in the requests list. It is called by the replica
@@ -186,13 +186,13 @@ class Replica:
     def listen(self):
         ipp = replicas[self.id]
         sock = socket(AF_INET, SOCK_DGRAM)
+        print(ipp)
         sock.bind(ipp)
 
         with open(f"logs/replica{self.id}.log", "w") as f:
             while True:
                 data, addr = sock.recvfrom(1024)
-                msg = json.loads(data.decode('ascii'))
-                msg = Message.from_json(msg)
+                msg = Message.from_json(data)
 
                 # print(f"{self.id}: Received {msg} from {addr}")
                 f.write(f"{msg.to_json()}\n")

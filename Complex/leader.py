@@ -119,15 +119,22 @@ class Leader:
             self.handle_p1b(classes.P1B.from_dict(msg))
         elif msg["type"] == classes.MessageType.P2B.value:
             self.handle_p2b(classes.P2B.from_dict(msg))
+        else:
+            print("leader: Unknown message type")
 
     def listen(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         port = leaders[self.id][1]
-        self.sock.bind(("", ('0.0.0.0', port)))
+        self.sock.bind(("", port))
 
         with self.lock:
             self.start_scout()
 
         while True:
             data, addr = self.sock.recvfrom(1024)
-            self.handle(json.loads(data.decode()))
+            data = data.decode()
+            print(data)
+            msg = json.loads(data)
+            print(msg)
+            print(type(msg))
+            self.handle(msg)

@@ -55,16 +55,16 @@ class Acceptor():
                     self.accepted += [(message.slot, message.ballot, message.command)]
                 return P2B(MessageType.P2B, message.leader_id, self.id, self.ballot_num)
         
-    def handle(self, message: Message) -> (P1B | P2B):
+    def handle(self, message: dict) -> (P1B | P2B):
         """
             Handles received message from proposer.
         """
-        if message.type == MessageType.P1A:
-            msg = self.receive_proposal(message)
+        if message["type"] == MessageType.P1A.value:
+            msg = self.receive_proposal(P1A.from_dict(message))
         
         # If accept-request message received
-        elif message.type == MessageType.P2A:
-            msg = self.receive_accept_request(message)
+        elif message["type"] == MessageType.P2A.value:
+            msg = self.receive_accept_request(P2A.from_dict(message))
         
         return msg
     
@@ -76,13 +76,13 @@ class Acceptor():
         with open(f"logs/acceptor{self.id}.log", "w") as f:
             while True:
                 data, addr = sock.recvfrom(1024)
-                msg = json.loads(data.decode('ascii'))
-                msg = Message.from_json(msg)
+                data = data.decode()
+                msg = json.loads(data)
 
                 # print(f"{self.id}: Received {msg} from {addr}")
-                f.write(f"{msg.to_json()}\n")
+                f.write(f"{data}\n")
                 res = self.handle(msg)
-                f.write(f"{res.to_json()}\n")
+                f.write(f"{data}\n")
 
                 # print(f"{self.id}: Sending {msg} to {addr}")
                 
