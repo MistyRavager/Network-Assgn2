@@ -1,9 +1,15 @@
 import os
+from typing import List
 
 # consider this file immutable, do not change it
 # if you want to use less replicas, leaders or acceptors
 # just use replicas[:n], leaders[:n] or acceptors[:n]
 clients = []
+
+replicas: List[tuple[str, int]]
+leaders: List[tuple[str, int]]
+acceptors: List[tuple[str, int]]
+
 if os.environ.get('LOCAL'):
     replicas = [
         ("localhost", 5000),
@@ -59,14 +65,14 @@ else:
         ("10.0.0.003", 5000),
         ("10.0.0.004", 5000),
         ("10.0.0.005", 5000),
-    ],
+    ]
     leaders = [
         ("10.0.0.001", 6000),
         ("10.0.0.002", 6000),
         ("10.0.0.003", 6000),
         ("10.0.0.004", 6000),
         ("10.0.0.005", 6000),
-    ],
+    ]
     acceptors = [
         ("10.0.0.001", 7000),
         ("10.0.0.002", 7000),

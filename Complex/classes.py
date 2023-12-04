@@ -3,12 +3,14 @@ from dataclasses_json import dataclass_json
 from typing import List, Dict, Tuple
 from enum import Enum
 
+
 @dataclass_json
 @dataclass
 class Command:
     client_id: int
     op_id: int
     op: str
+
 
 class MessageType(Enum):
     # client-replica
@@ -25,6 +27,7 @@ class MessageType(Enum):
     P2A = 7
     P2B = 8
 
+
 @dataclass
 @dataclass_json
 class Message:
@@ -36,11 +39,13 @@ class Message:
 class Request(Message):
     command: Command
 
+
 @dataclass
 @dataclass_json
 class Response(Message):
     command: Command
     result: str
+
 
 @dataclass
 @dataclass_json
@@ -48,11 +53,13 @@ class Propose(Message):
     slot: int
     command: Command
 
+
 @dataclass
 @dataclass_json
 class Decision(Message):
     slot: int
     command: Command
+
 
 @dataclass(order=True)
 @dataclass_json
@@ -60,10 +67,13 @@ class Ballot:
     num: int
     leader_id: int
 
+
 @dataclass
 @dataclass_json
 class P1A(Message):
+    acceptor_id: int
     ballot: Ballot
+
 
 @dataclass
 @dataclass_json
@@ -73,6 +83,7 @@ class P1B(Message):
     ballot: Ballot
     accepted: List[Tuple[int, Ballot, Command]]
 
+
 @dataclass
 @dataclass_json
 class P2A(Message):
@@ -81,9 +92,12 @@ class P2A(Message):
     slot: int
     command: Command
 
+
 @dataclass
 @dataclass_json
 class P2B(Message):
     leader_id: int
     acceptor_id: int
     ballot: Ballot
+    slot: int
+    command: Command
