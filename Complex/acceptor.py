@@ -15,7 +15,7 @@ class Acceptor():
         self.lock_accepted = threading.Lock() # Sync things
         self.lock_ballot_num = threading.Lock()
 
-    def receive_proposal(self, message: P1A):
+    def receive_proposal(self, message: P1A) -> P1B:
         """
         Phase 1.
         Input is prepare, output is a promise
@@ -26,7 +26,7 @@ class Acceptor():
             return P1B(MessageType.P1B, message.ballot.leader_id, self.id, self.ballot_num, self.accepted)
         # TODO: UDP packet size < accepted
 
-    def receive_accept_request(self, message: P2A):
+    def receive_accept_request(self, message: P2A) -> P2B:
         """
         Phase 2
         Input is accept-request, output is an ack
@@ -37,7 +37,7 @@ class Acceptor():
                     self.accepted += [(message.slot, message.ballot_num, message.command)]
                 return P2B(MessageType.P2B, message.leader_id, self.id, self.ballot_num)
         
-    def handle(self, message: Message):
+    def handle(self, message: Message) -> (P1B | P2B):
         """
             Handles received message from proposer.
         """
@@ -55,17 +55,19 @@ class Acceptor():
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.bind(ipp)
 
-        while True:
-            data, addr = sock.recvfrom(1024)
-            msg = json.loads(data.decode('ascii'))
-            msg = Message.from_json(msg)
+        with open(f"logs/acceptor{self.id}.log", "w") as f:
+            while True:
+                data, addr = sock.recvfrom(1024)
+                msg = json.loads(data.decode('ascii'))
+                msg = Message.from_json(msg)
 
-            # print(f"{self.id}: Received {msg} from {addr}")
+                # print(f"{self.id}: Received {msg} from {addr}")
+                f.write(f"{msg.to_json()}\n")
+                res = self.handle(msg)
+                f.write(f"{res.to_json()}\n")
 
-            res = self.handle(msg)
-
-            # print(f"{self.id}: Sending {msg} to {addr}")
-            
-            sock.sendto(json.dumps(dataclasses.asdict(res)).encode('ascii'), addr)
-            
-            # print(f"{self.id}: Sent {msg} to {addr}")
+                # print(f"{self.id}: Sending {msg} to {addr}")
+                
+                sock.sendto(json.dumps(dataclasses.asdict(res)).encode('ascii'), addr)
+                
+                # print(f"{self.id}: Sent {msg} to {addr}")
