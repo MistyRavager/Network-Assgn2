@@ -18,9 +18,15 @@ class Scout:
 
 
 @dataclass
-class Commander:
+class CommanderId:
     slot: int
     command: classes.Command
+
+
+@dataclass
+class CommanderState:
+    waitfor: List[int]
+    ballot_num: int
 
 
 class Leader:
@@ -31,19 +37,11 @@ class Leader:
     scout: Scout | None = None
     sock: socket.socket
     lock: Lock
-    commanders: dict = {}
+    commanders: Dict[CommanderId, CommanderState] = {}
 
     def __init__(self, id: int):
         self.id = id
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.sock.bind(("", leaders[id][1]))
         self.lock = Lock()
-
-        t = threading.Thread(target=self.listen)
-        t.start()
-
-        with self.lock:
-            self.start_scout()
 
     def start_scout(self):
         self.scout = Scout(list(range(len(acceptors))), {},
@@ -87,24 +85,31 @@ class Leader:
 
     def start_commander(self, slot: int, command: classes.Command):
         waitfor = list(range(len(acceptors)))
-        commander = Commander(slot, command)
-        self.commanders[commander] = waitfor
+        commander = CommanderId(slot, command)
+        self.commanders[commander] = CommanderState(waitfor, self.ballot_num)
         for i in range(len(acceptors)):
             self.sock.sendto(classes.P2A(classes.MessageType.P2A, i, classes.Ballot(
                 self.ballot_num, self.id), slot, command).to_json().encode(), acceptors[i])
 
     def handle_p2b(self, message: classes.P2B):
-        # TODO
         with self.lock:
-            if (message.slot, message.command) not in self.commanders:
+            commander = CommanderId(message.slot, message.command)
+            if commander not in self.commanders:
                 return
-            if message.ballot != self.commanders[(message.slot, message.command)].ballot:
+            state = self.commanders[commander]
+            if message.ballot != classes.Ballot(state.ballot_num, self.id):
                 # preempted
                 self.active = False
                 self.ballot_num = message.ballot.num + 1
                 self.start_scout()
                 return
-            # TODO
+            state.waitfor.remove(message.acceptor_id)
+            if len(state.waitfor) <= len(acceptors) // 2:
+                # decided
+                del self.commanders[commander]
+                for i in range(len(acceptors)):
+                    self.sock.sendto(classes.Decision(classes.MessageType.DECISION,
+                                                      message.slot, message.command).to_json().encode(), acceptors[i])
 
     def handle(self, msg: dict):
         # types: propose, p1b, p2b
@@ -116,6 +121,13 @@ class Leader:
             self.handle_p2b(classes.P2B.from_dict(msg))
 
     def listen(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        port = leaders[self.id][1]
+        self.sock.bind(("", ('0.0.0.0', port)))
+
+        with self.lock:
+            self.start_scout()
+
         while True:
             data, addr = self.sock.recvfrom(1024)
             self.handle(json.loads(data.decode()))
