@@ -46,7 +46,7 @@ class Decision(Message):
     slot: int
     command: Command
 
-@dataclass
+@dataclass(order=True)
 class Ballot:
     num: int
     leader_id: int
