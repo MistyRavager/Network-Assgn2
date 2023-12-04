@@ -7,15 +7,25 @@ from threading import Event
 # dir_acceptors = { 0: ('localhost', 6000), 1: ('localhost', 6001), 2: ('localhost', 6002) }
 # dir_learners = { 0: ('localhost', 7000), 1: ('localhost', 7001), 2: ('localhost', 7002) }
 
-# dir_net = {0: ('localhost', 5000), 1: ('localhost', 5001), 2: ('localhost', 5002), 3: ('localhost', 6000), 4: ('localhost', 6001), 5: ('localhost', 6002), 6: ('localhost', 7000), 7: ('localhost', 7001), 8: ('localhost', 7002)}
-
 dir_net = {
-    0: ('10.0.0.1', 5000),
-    1: ('10.0.0.2', 5000),
-    2: ('10.0.0.3', 5000),
-    3: ('10.0.0.4', 5000),
-    4: ('10.0.0.5', 5000),
+    0: ('localhost', 5000), 
+    1: ('localhost', 5001), 
+    2: ('localhost', 5002), 
+    3: ('localhost', 6000), 
+    4: ('localhost', 6001), 
+    5: ('localhost', 6002), 
+    6: ('localhost', 7000), 
+    7: ('localhost', 7001), 
+    8: ('localhost', 7002)
 }
+
+# dir_net = {
+#     0: ('10.0.0.1', 5000),
+#     1: ('10.0.0.2', 5000),
+#     2: ('10.0.0.3', 5000),
+#     3: ('10.0.0.4', 5000),
+#     4: ('10.0.0.5', 5000),
+# }
 
 # dir_acceptors = {
 #     0: ('10.0.0.1', 6000),

@@ -106,10 +106,13 @@ class Proposer:
 
         # Minimum Majority Value & Determine selection value
         min_majority = (self.nacceptors + 1) // 2
-        select = random.randint(min_majority, self.nacceptors)
-
-        # Return a random sample of acceptors
-        return random.sample(sorted(self.acceptors), select)
+        if self.randomize_acceptors: 
+            select = min_majority#random.randint(min_majority, self.nacceptors)
+            return random.sample(sorted(self.acceptors), select)
+        else: 
+            select = min_majority
+            return sorted(self.acceptors)[:select]
+        
 
     # Function to prepare proposal
     def prepare_proposal(self, value: int) -> List[Prepare]:
@@ -153,7 +156,7 @@ class Proposer:
         # Iterate through majority list to send accept-request message
         for acceptor in self.majority_list:
             if self.received_max:
-                commit = (self.id, acceptor, self.proposal_number, self.max_value)
+                commit = AcceptRequest(self.id, acceptor, self.proposal_number, self.max_value)
                 print(f'Kg1111')
                 self.consensus_value = self.max_value
             else:

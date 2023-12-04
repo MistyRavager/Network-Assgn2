@@ -11,7 +11,7 @@ from acceptor import Acceptor
 from message import *
 from dir import *
 from typing import Tuple, List
-
+import time
 
 class Node:
     def __init__(
@@ -71,13 +71,14 @@ class Node:
 
             # Send proposal to acceptors
             for prop_idx, prop_json in enumerate(prop_json_list):
-                print(f"Sending {prop_json} to {dir_net[prop_list[prop_idx].receiver_id]}")
+                print(f"{self.id}: Sending {prop_json} to {dir_net[prop_list[prop_idx].receiver_id]}")
                 self.sock.sendto(json.dumps(prop_json).encode('ascii'), dir_net[prop_list[prop_idx].receiver_id])
-                print(f"Sent {prop_json} to {dir_net[prop_list[prop_idx].receiver_id]}")
+                print(f"{self.id}: Sent {prop_json} to {dir_net[prop_list[prop_idx].receiver_id]}")
+
 
             # Wait till interrupted by proposer
             self.timer.sleep()
-
+            time.sleep(2)
             # Check if proposal was rejected
             if self.proposer.is_rejected():
                 # If proposal was rejected, try again
@@ -87,8 +88,9 @@ class Node:
                 acc_list = self.proposer.send_accept_request(self.proposal_value) # Fill params
                 acc_json_list = [self.msg_jsonify(acc) for acc in acc_list]
                 for acc_idx, acc_json in enumerate(acc_json_list):
+                    print(f"{self.id}: Sending acc req lno 91 {acc_json} to {dir_net[acc_list[acc_idx].receiver_id]}")
                     self.sock.sendto(json.dumps(acc_json).encode('ascii'), dir_net[acc_list[acc_idx].receiver_id])
-
+                    print(f"{self.id}: Sent acc req {acc_json} to {dir_net[acc_list[acc_idx].receiver_id]}")
             # Wait till interrupted by proposer
             self.timer.sleep()
 
@@ -114,7 +116,7 @@ class Node:
             print(f'Sender: {message.sender_id}, Receiver: {message.receiver_id}')
             if recv_msg is not None:
                 self.sock.sendto(json.dumps(self.msg_jsonify(recv_msg)).encode('ascii'), dir_net[recv_msg.receiver_id])
-                print(f'Response: Sending {self.msg_jsonify(recv_msg)} to {dir_net[recv_msg.receiver_id]}')
+                print(f'{self.id}: Response: Sending {self.msg_jsonify(recv_msg)} to {dir_net[recv_msg.receiver_id]}')
 
         # Learner's handle
 
@@ -123,6 +125,11 @@ class Node:
         Listens for messages from other nodes.
         """
         while True:
+            if self.id in [3, 4, 5]:
+                if self.acceptor.accepted_value is not None:
+                    print(f'----------{self.id}: Consensus value: {self.acceptor.accepted_value}----------')
+                else:
+                    print(f'----------{self.id}: Consensus value: None----------')
             print(f'kggggg')
             # Receive message
             data, addr = self.sock.recvfrom(1024)
