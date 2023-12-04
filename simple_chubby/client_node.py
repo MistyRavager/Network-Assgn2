@@ -6,7 +6,8 @@ import sys
 import os
 
 server_port = 5000
-server_host = '127.0.0.1'
+# server_host = '127.0.0.1'
+server_host = '10.0.0.1'
 
 lock_lock = threading.Lock() # lock for appending to locks list
 
