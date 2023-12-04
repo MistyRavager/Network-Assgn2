@@ -63,14 +63,14 @@ class Client:
             print("Client", self.id, "received response:", response.result)
 
             # Generate 10 char random string/ lock service
-            op_val = ''.join(random.choice(string.ascii_letters) for i in range(10))
+            # op_val = ''.join(random.choice(string.ascii_letters) for i in range(10))
 
             # Issue a new request ??
-            request = self.issue_request(op_val)
+            # request = self.issue_request(op_val)
 
             # Send request to replicas
-            for i in self.replicas:
-                sock.sendto(request.to_json().encode('ascii'), replicas[i])
+            # for i in self.replicas:
+            #     sock.sendto(request.to_json().encode('ascii'), replicas[i])
 
 
         
