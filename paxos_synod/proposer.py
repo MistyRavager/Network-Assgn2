@@ -164,6 +164,7 @@ class Proposer:
             commit_list.append(commit)
 
 
+            # print(f'Kg2222 {self.consensus_value}')
 
             #Send Commit Message : TBD        
         

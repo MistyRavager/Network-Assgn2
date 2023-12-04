@@ -6,8 +6,8 @@ import sys
 import os
 
 server_port = 5000
-# server_host = '127.0.0.1'
-server_host = '10.0.0.1' # default server host?
+server_host = '127.0.0.1'
+# server_host = '10.0.0.1'
 
 lock_lock = threading.Lock() # lock for appending to locks list
 
@@ -38,7 +38,7 @@ def send_keepalive(lock_num: int):
 def get_lock(s: socket.socket, lock_num: int):
     global client
     while True:
-        print('Client requesting lock', lock_num)
+        # print('Client requesting lock', lock_num)
         message = client.make_message('request', lock_num)
         s.sendto(message.encode(), (server_host, server_port))
         response, addr = s.recvfrom(1024)
