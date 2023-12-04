@@ -1,6 +1,8 @@
 import os
 
-local = True
+# consider this file immutable, do not change it
+# if you want to use less replicas, leaders or acceptors
+# just use replicas[:n], leaders[:n] or acceptors[:n]
 
 if os.environ.get('LOCAL'):
     replicas = [
