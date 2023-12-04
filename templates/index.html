@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chubby Protocol</title>
+</head>
+<body>
+    <h1>Chubby Protocol</h1>
+
+    <input type="text" id="lock_num" placeholder="Lock number">
+    <button onclick=handle_click()>Acquire Lock</button>
+
+    <div id="grid">
+        <div class="cell">0</div>
+        <div class="cell">1</div>
+        <div class="cell">2</div>
+        <div class="cell">3</div>
+        <div class="cell">4</div>
+        <div class="cell">5</div>
+        <div class="cell">6</div>
+        <div class="cell">7</div>
+        <div class="cell">8</div>
+        <div class="cell">9</div>
+    </div>
+</body>
+</html>
+<style>
+    #grid {
+        background-color:#eee;
+        width: 1000px;
+        margin: 20px auto;
+        display: grid;
+        grid-template-rows: repeat(2, 150px);
+        grid-template-columns: repeat(3, 1fr);
+        /* grid-gap: 30px;  */
+    }
+
+    .cell {
+        /* margin: auto; */
+        /* text-align: center; */
+        /* vertical-align: middle; */
+        /* make the text in middle vertically */
+
+        display: flex;
+        justify-content: center;
+        padding: 40px;
+        font-size: 40px;
+        font-family: sans-serif;
+        color: black;
+    }
+</style>
+<script>
+    // make a unique id for this instance
+    // fetch('http://localhost:8080', {
+    //     method: 'POST',
+    //     headers: {
+    //         'Content-Type': 'application/json'
+    //     },
+    //     body: JSON.stringify({'secret_id': id})
+    // }).then(function(response) {
+    //     return response.json();
+    // }).then(function(data) {
+    //     client_id = data['id'];
+    //     document.getElementById('client_id').innerHTML = client_id;
+    // });
+    var id = {{id}};
+    var locks = {{locks}};
+    var acqu_locks = {{acqu_locks}};
+    console.log(id, locks, acqu_locks);
+    document.getElementById('lock_num').value = 0;
+    let grid = document.getElementById('grid');
+    let cells = grid.getElementsByClassName('cell');
+    let cell_values = [];
+    update_grid();
+    function handle_click() {
+        let lock = document.getElementById('lock_num').value;
+        // check if the value is integer
+        if (lock == parseInt(lock, 10)) {
+            // check if the value is in range
+            if (lock >= 0 && lock <= 9) {
+                let port = window.location.port;
+                console.log(port);
+                fetch('http://localhost:' + port + '/acquire', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({'lock': lock})
+                }).then(function(response) {
+                    console.log("response");
+                    update_grid();
+                });
+            }
+        }
+    }
+
+    // write update grid function according to the locks and acqu_locks
+    function update_grid() {
+        for (let i = 0; i < locks.length; i++) {
+            cells[i].style.backgroundColor = 'green';
+        }
+        for (let i = 0; i < acqu_locks.length; i++) {
+            cells[acqu_locks[i]].style.backgroundColor = 'yellow';
+        }
+    }
+</script>
