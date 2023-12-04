@@ -11,6 +11,13 @@ leaders: List[tuple[str, int]]
 acceptors: List[tuple[str, int]]
 
 if os.environ.get('LOCAL'):
+    clients = [
+        ("localhost", 4000),
+        ("localhost", 4001),
+        ("localhost", 4002),
+        ("localhost", 4003),
+        ("localhost", 4004),
+    ]
     replicas = [
         ("localhost", 5000),
         ("localhost", 5001),
@@ -58,7 +65,13 @@ else:
     #     ("10.0.0.123", 7000),
     #     ("10.0.0.124", 7000),
     # ]
-
+    clients = [
+        ("10.0.0.001", 4000),
+        ("10.0.0.002", 4000),
+        ("10.0.0.003", 4000),
+        ("10.0.0.004", 4000),
+        ("10.0.0.005", 4000),
+    ]
     replicas = [
         ("10.0.0.001", 5000),
         ("10.0.0.002", 5000),
