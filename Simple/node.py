@@ -55,7 +55,7 @@ class Node:
         # Initialize UDP socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.bind((self.hostname, self.port))
-        self.proposal_value = proposal_value
+        # self.proposal_value = proposal_value
         
     # Function to propose a value
     def propose(self, value:int) -> int:
@@ -85,7 +85,7 @@ class Node:
                 continue
             else:
                 # Proposal is accepted
-                acc_list = self.proposer.send_accept_request(self.proposal_value) # Fill params
+                acc_list = self.proposer.send_accept_request(value) # Fill params
                 acc_json_list = [self.msg_jsonify(acc) for acc in acc_list]
                 for acc_idx, acc_json in enumerate(acc_json_list):
                     print(f"{self.id}: Sending acc req lno 91 {acc_json} to {dir_net[acc_list[acc_idx].receiver_id]}")
