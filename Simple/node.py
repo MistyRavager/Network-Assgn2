@@ -73,7 +73,7 @@ class Node:
             for prop_idx, prop_json in enumerate(prop_json_list):
                 print(f"{self.id}: Sending {prop_json} to {dir_net[prop_list[prop_idx].receiver_id]}")
                 self.sock.sendto(json.dumps(prop_json).encode('ascii'), dir_net[prop_list[prop_idx].receiver_id])
-                print(f"{self.id}: Sent {prop_json} to {dir_net[prop_list[prop_idx].receiver_id]}")
+                # print(f"{self.id}: Sent {prop_json} to {dir_net[prop_list[prop_idx].receiver_id]}")
 
 
             # Wait till interrupted by proposer
@@ -87,8 +87,10 @@ class Node:
                 # Proposal is accepted
                 acc_list = self.proposer.send_accept_request(value) # Fill params
                 acc_json_list = [self.msg_jsonify(acc) for acc in acc_list]
+                print(acc_json_list)
+                print(acc_list)
                 for acc_idx, acc_json in enumerate(acc_json_list):
-                    print(f"{self.id}: Sending acc req lno 91 {acc_json} to {dir_net[acc_list[acc_idx].receiver_id]}")
+                    # print(f"{self.id}: Sending acc req lno 91 {acc_json} to {dir_net[acc_list[acc_idx].receiver_id]}")
                     self.sock.sendto(json.dumps(acc_json).encode('ascii'), dir_net[acc_list[acc_idx].receiver_id])
                     print(f"{self.id}: Sent acc req {acc_json} to {dir_net[acc_list[acc_idx].receiver_id]}")
             # Wait till interrupted by proposer
@@ -133,7 +135,6 @@ class Node:
             print(f'kggggg')
             # Receive message
             data, addr = self.sock.recvfrom(1024)
-            print(f'kggggg1')
             message = json.loads(data.decode('ascii'))
 
             # Handle message
@@ -141,9 +142,11 @@ class Node:
             if addr[0] == '127.0.0.1':
                 addr = ('localhost', addr[1])
             self.handle(self.msg_parse(message, addr))
-            print(f'kggggg2')
+            # if self.acceptor.has_accepted:
+            #     print(f'Accepted: {self.acceptor.accepted_value}')
+            print("shouldnt print sometime")
 
-    
+        print("shouldnt print anytime whatsoever")
 
     def msg_jsonify(self, message: Message):
         """

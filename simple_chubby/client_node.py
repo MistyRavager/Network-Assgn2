@@ -22,7 +22,6 @@ def send_keepalive(lock_num: int):
         message = client.make_message('keepalive', lock_num)
         s.sendto(message.encode(), (server_host, server_port))
         response, addr = s.recvfrom(1024)
-        # print(response, addr)
         if addr == (server_host, server_port):
             if client.check_keepalive_response(response.decode()):
                 time.sleep(client.sleep_time)

@@ -157,7 +157,6 @@ class Proposer:
         for acceptor in self.majority_list:
             if self.received_max:
                 commit = AcceptRequest(self.id, acceptor, self.proposal_number, self.max_value)
-                print(f'Kg1111')
                 self.consensus_value = self.max_value
             else:
                 commit = AcceptRequest(self.id, acceptor, self.proposal_number, value)
@@ -165,7 +164,6 @@ class Proposer:
             commit_list.append(commit)
 
 
-            print(f'Kg2222 {self.consensus_value}')
 
             #Send Commit Message : TBD        
         
@@ -220,7 +218,6 @@ class Proposer:
 
         # If ack-accept message received
         elif (type(message) == Ack) and (self.proposal_number == message.consensus_number) and (message.result == 'accepted'):
-            print(f'Kg3333 {message.consensus_value}')
             # Increment accepted count
             self.accepted_count += 1
 
@@ -233,7 +230,6 @@ class Proposer:
 
         # If ack-reject message received
         elif (type(message) == Ack) and (self.proposal_number == message.consensus_number) and (message.result == 'rejected'):
-            print(f'Kg4444 {message.consensus_value}')
             # Increment rejected count
             self.rejected_count += 1
 
