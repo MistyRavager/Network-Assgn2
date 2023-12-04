@@ -15,6 +15,24 @@ class Acceptor():
         self.lock_accepted = threading.Lock() # Sync things
         self.lock_ballot_num = threading.Lock()
 
+    def get_latest_accepts(self) -> List[Tuple[int, Ballot, Command]]:
+        """
+            Returns the latest accepted commands.
+        """
+        out: List[Tuple[int, Ballot, Command]] = []
+        slots: List[int] = []
+        # with self.lock_accepted:
+        #     return self.accepted
+
+        for a in self.accepted:
+            if a[0] not in slots:
+                slots += [a[0]]
+                out += [a]
+            elif a[1] > out[slots.index(a[0])][1]:
+                out[slots.index(a[0])] = a
+
+        return out
+
     def receive_proposal(self, message: P1A) -> P1B:
         """
         Phase 1.
@@ -23,7 +41,7 @@ class Acceptor():
         with self.lock_ballot_num:
             if message.ballot > self.ballot_num:
                 self.ballot_num = message.ballot_num
-            return P1B(MessageType.P1B, message.ballot.leader_id, self.id, self.ballot_num, self.accepted)
+            return P1B(MessageType.P1B, message.ballot.leader_id, self.id, self.ballot_num, self.get_latest_accepts())
         # TODO: UDP packet size < accepted
 
     def receive_accept_request(self, message: P2A) -> P2B:
@@ -68,6 +86,6 @@ class Acceptor():
 
                 # print(f"{self.id}: Sending {msg} to {addr}")
                 
-                sock.sendto(json.dumps(dataclasses.asdict(res)).encode('ascii'), addr)
+                sock.sendto(json.dumps(res.to_json()).encode('ascii'), addr)
                 
                 # print(f"{self.id}: Sent {msg} to {addr}")

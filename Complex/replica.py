@@ -15,6 +15,8 @@ import dataclasses
 from classes import *
 from dir import *
 
+import numpy as np
+
 # Constants
 SLOTS = 5
 
@@ -50,20 +52,20 @@ class Replica:
 
         # Main Paramaters
         self.id = id
-        self.leaders = list(range(0, len(leaders))) # List of leader 
+        self.leaders = list(range(len(leaders))) # List of leader 
         self.slots = [None] * SLOTS
         self.slot_in = 0
         self.slot_out = 0
 
         # State of the replica (list of Commands)
-        self.state = []
+        self.state: List[Command] = []
 
         # List of Command objects
-        self.requests = []
+        self.requests: List[Command] = []
 
         # List of tuples (slot, Command)
-        self.proposals = []
-        self.decisions = []
+        self.proposals: List[Tuple[int, Command]] = []
+        self.decisions: List[Tuple[int, Command]] = []
 
         # Helper Parameters
         self.comm_lock = threading.Lock()
@@ -88,7 +90,7 @@ class Replica:
                 req = self.requests.pop(0)
 
                 # Make Propose object
-                prop_list.append(Propose(self.slot_in, req.command))
+                prop_list.append(Propose(MessageType.PROPOSE, self.slot_in, req.command))
                 
                 # Append to proposals list
                 self.proposals.append((self.slot_in, req.command))
@@ -105,32 +107,36 @@ class Replica:
         """
 
         # Check if Command is in decisions list
-        chk = False
-        for i in self.decisions:
-            if (i[1] == command) and (i[0] < self.slot_out):
-                chk = True
-                break
+        # chk = False
+        # for i in self.decisions:
+        #     if (i[1] == command) and (i[0] < self.slot_out):
+        #         chk = True
+        #         break
+
+        # chk = np.any(self.decisions, lambda x: x[1] == command and x[0] < self.slot_out)
         
-        if chk:
+        if np.any(self.decisions, lambda x: x[1] == command and x[0] < self.slot_out):
             self.slot_out += 1
             return None
-        
-        # Else change state and return
-        else:
-            self.state.append(command)
 
-            # Atomic operation
-            self.comm_lock.acquire()
+        self.state.append(command)
+
+        # Atomic operation
+        # self.comm_lock.acquire()
+        # self.slots[self.slot_out] = command
+        # self.slot_out += 1
+        # self.comm_lock.release()
+
+        with self.comm_lock:
             self.slots[self.slot_out] = command
             self.slot_out += 1
-            self.comm_lock.release()
 
-            # Send Response to client
-            response = Response(command, 'YES')
-            return response
+        # Send Response to client
+        response = Response(MessageType.RESPONSE, command, 'YES')
+        return response
 
     
-    def handle(self, message):
+    def handle(self, message) -> (List[Propose], List[Response]):
         """
             The handle function is responsible for handling the requests
             from the clients (or) decisions from the leaders. This function
@@ -139,29 +145,30 @@ class Replica:
         """
 
         # Return Messages
-        perf = []
-        prop = None
+        perf: List[Response] = []
+        prop: List[Propose] = []
 
         # Message cases
-        if type(message) == Request:
+        if type(message) is Request:
             # Add to requests list
             self.requests.append(message.command)
             
-        elif type(message) == Decision:
+        elif type(message) is Decision:
             # Add to decisions list
             self.decisions.append((message.slot, message.command))
 
             # While slot_out is decided on
-            chk_dec = [i for i in self.decisions if i.slot == self.slot_out]
+            # chk_dec = [i for i in self.decisions if i.slot == self.slot_out]
+            chk_dec = np.where(self.decisions, lambda x: x[0] == self.slot_out)
             while len(chk_dec) > 0:
                 # Check for proposals
-                chk_prop = [i for i in self.proposals if i.slot == self.slot_out]
+                chk_prop = np.where(self.proposals, lambda x: x[0] == self.slot_out)
                 if len(chk_prop) > 0:
                     # Remove from proposals list
                     self.proposals.remove(chk_prop[0])
 
                     # Check is same command
-                    if chk_prop[0][1] == chk_dec[0][1]:
+                    if chk_prop[0][1] != chk_dec[0][1]:
                         # Add to requests
                         self.requests.add(chk_prop[0][1])
                     
@@ -169,7 +176,8 @@ class Replica:
                 perf.append(self.perform(chk_dec[0][1]))
 
                 # Check for next slot
-                chk_dec = [i for i in self.decisions if i.slot == self.slot_out]
+                # chk_dec = [i for i in self.decisions if i.slot == self.slot_out]
+                chk_dec = np.where(self.decisions, lambda x: x[0] == self.slot_out)
             
         prop = self.propose()
 
@@ -180,21 +188,19 @@ class Replica:
         sock = socket(AF_INET, SOCK_DGRAM)
         sock.bind(ipp)
 
-        while True:
-            data, addr = sock.recvfrom(1024)
-            msg = json.loads(data.decode('ascii'))
-            msg = Message.from_json(msg)
+        with open(f"logs/replica{self.id}.log", "w") as f:
+            while True:
+                data, addr = sock.recvfrom(1024)
+                msg = json.loads(data.decode('ascii'))
+                msg = Message.from_json(msg)
 
-            # Handle message
-            prop, perf = self.handle(msg)
-            
-            # Send proposals to all leaders
-            for p in prop:
-                for i in self.leaders:
-                    sock.sendto(json.dumps(dataclasses.asdict(p)).encode('ascii'), leaders[i])
-            
-            # Send responses to clients
-            for i in perf:
-                sock.sendto(json.dumps(dataclasses.asdict(i)).encode('ascii'), clients[i.client_id])
-            
+                # print(f"{self.id}: Received {msg} from {addr}")
+                f.write(f"{msg.to_json()}\n")
+                res = self.handle(msg)
+                f.write(f"{res.to_json()}\n")
+
+                # print(f"{self.id}: Sending {msg} to {addr}")
+                
+                sock.sendto(json.dumps(res.to_json()).encode('ascii'), addr)
+    
 

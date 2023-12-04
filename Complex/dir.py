@@ -3,7 +3,7 @@ import os
 # consider this file immutable, do not change it
 # if you want to use less replicas, leaders or acceptors
 # just use replicas[:n], leaders[:n] or acceptors[:n]
-
+clients = []
 if os.environ.get('LOCAL'):
     replicas = [
         ("localhost", 5000),
@@ -52,7 +52,7 @@ else:
     #     ("10.0.0.123", 7000),
     #     ("10.0.0.124", 7000),
     # ]
-    
+
     replicas = [
         ("10.0.0.001", 5000),
         ("10.0.0.002", 5000),
