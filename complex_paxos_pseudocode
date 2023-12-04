@@ -1,0 +1,191 @@
+𝚙𝚛𝚘𝚌𝚎𝚜𝚜 Replica(leaders, initial_state) {
+    let state = initial_state, slot_in = 1, slot_out = 1;
+    let requests = {}, proposals = {}, decisions = {};
+
+    // propose something.
+    fn propose() {
+        // slot within bounds and there's a request
+        while slot_in < slot_out + WINDOW && ∃c:c ∈ requests {
+            // reconfig thing, give that leadership
+            /* if let (slot_in − WINDOW, (_, _, op)) ∈ decisions && isreconfig(op) {
+                leaders = op.leaders;
+            } */
+            // No consensus for this slot yet, propose
+            if ∄c′:(slot_in, c′) ∈ decisions {
+                // move thing to proposals
+                requests.remove(c);
+                proposals.push((slot_in, c));
+
+                // send to all leaders
+                leaders.map(|λ| send(λ, (propose, slot_in, c)));
+            }
+            // Increment proposal slot
+            slot_in += 1;
+        }
+    }
+
+    fn perform(κ:ActualClient?, cid: ClientID?, op: CompleteMystery){
+        // If command (aka thing) is consensus or reconfig
+        let c = Command::new(κ, cid, op); // added this line for coolness
+        if (∃s: s < slot_out && (s, c) ∈ decisions) {
+            slot_out += 1;
+        }
+        else {
+            (next, result) = op(state); // Be function or state machine?
+            // why atomic??
+            𝚊𝚝𝚘𝚖𝚒𝚌
+                state = next; // set state, duh
+                slot_out += 1; // Incrementing this in lots of places, strange
+            𝚎𝚗𝚍 𝚊𝚝𝚘𝚖𝚒𝚌
+            // pulled response out of indeterminate orifice.
+            send(κ, (response, cid, result));
+        }
+    }
+
+    // listener
+    loop {
+        match recv() {
+            // request came, add it to requests
+            𝚌𝚊𝚜𝚎 (request, c: Command):
+                requests.push(c);
+                break;
+
+            𝚌𝚊𝚜𝚎 (decision, s, c):
+                decisions.push((s, c));
+                // what is c?
+
+                // Actually do everything? There's a bunch of performs here.
+                // We're actually looping over the slot_out, coz increment inside perform
+                while ∃c′: (slot_out, c′) ∈ decisions {
+                    // proposal to decision or ded.
+                    if ∃c″: (slot_out, c″) ∈ proposals {
+                        proposals.remove((slot_out, c″));
+                        if c″ ≠ c′ {
+                            // propose again later
+                            requests.push(c″);
+                        }
+                    }
+                    perform(c′);
+                }
+        }
+        propose(); // propose something??
+    }
+}
+
+// Prepare/Commit requests
+enum PhaseReq {
+    p1a,
+    p2a,
+}
+
+// Prepare/Commit responses
+enum PhaseRes {
+    p1b,
+    p2b,
+}
+
+𝚙𝚛𝚘𝚌𝚎𝚜𝚜 Acceptor(){
+    // So ballot_num is the accepted proposal number?
+
+    // uninit ballot_num
+    let ballot_num: BallotNumber = ⊥, accepted = {};
+
+    loop {
+        𝚜𝚠𝚒𝚝𝚌𝚑 receive() {
+            // prepare/promise
+            𝚌𝚊𝚜𝚎 (PhaseReq::p1a, λ: LeaderID, b: BallotNumber):
+                if b > ballot_num {
+                    ballot_num = b;
+                }
+                send(λ, (PhaseRes::p1b, self, ballot_num, accepted));
+            
+            // commit
+            𝚌𝚊𝚜𝚎 (PhaseReq::p2a, λ: LeaderID, (b: BallotNumber, s: Slot, c: Command)):
+                if b == ballot_num {
+                    accepted.push((b,s,c));
+                }
+                send(λ, (PhaseRes::p2b, self, ballot_num));
+            
+        }
+    }
+}
+
+𝚙𝚛𝚘𝚌𝚎𝚜𝚜 Commander(λ: LeaderID, acceptors, replicas, (b, s, c): (BallotNumber, Slot, Command)){
+    let waitfor = acceptors;
+
+    // Send prepare requests
+    ∀α ∈ acceptors : send(α, (PhaseReq::p2a, self(), (b, s, c)));
+    loop {
+        𝚜𝚠𝚒𝚝𝚌𝚑 receive(){
+            𝚌𝚊𝚜𝚎 (PhaseRes::p2b, α: AcceptorID, b′: BallotNumber):
+                if b′ = b {
+                    waitfor.remove(α);
+                
+                    // Majority of acceptors have responded, send commit responses
+                    if |waitfor| < |acceptors| / 2 {
+                        ∀ρ ∈ replicas : send(ρ, (decision, s, c));
+                        exit();
+                    }
+                }
+                else { 
+                    // Higher ballot/proposal number found, preempted
+                    send(λ, (preempted, b′));
+                    exit();
+                }
+        }
+    }
+}
+
+𝚙𝚛𝚘𝚌𝚎𝚜𝚜 Scout(λ: LeaderID, acceptors, b: BallotNumber){
+    let waitfor = acceptors, pvalues = {};
+
+    ∀α ∈ acceptors: send(α, (PhaseReq::p1a, self, b));
+    loop {
+        𝚜𝚠𝚒𝚝𝚌𝚑 receive() {
+            𝚌𝚊𝚜𝚎 (PhaseRes::p1b, α: AcceptorID, b′: BallotNumber, r: ProposedValue?):
+                𝚒𝚏 b′ = b {
+                    pvalues.push(r);
+                    waitfor.remove(α);
+
+                    // Majority of acceptors have responded, relay back to leader.
+                    𝚒𝚏 |waitfor| < |acceptors| / 2 {
+                        send(λ, (adopted, b, pvalues)); // adopted ain't there.
+                        exit();
+                    }
+                }
+                𝚎𝚕𝚜𝚎 {
+                    send(λ, (preempted, b′));
+                    exit();
+                }
+        }
+    }
+}
+
+// Someone pls fill this up, Imma PCP.
+𝚙𝚛𝚘𝚌𝚎𝚜𝚜 Leader(acceptors, replicas)
+    let ballot_num = (0, self), active = false, proposals = {};
+
+    spawn(Scout(self, acceptors, ballot_num));
+    loop {
+        𝚜𝚠𝚒𝚝𝚌𝚑 receive(){
+            𝚌𝚊𝚜𝚎 (propose, s, c):
+                𝚒𝚏 ∄c′: (s,c′) ∈ proposals{
+                    proposals.push((s, c));
+                    𝚒𝚏 active {
+                        spawn(Commander(self, acceptors, replicas, (ballot_num, s, c)));
+                    }
+                }
+            𝚌𝚊𝚜𝚎 (adopted, ballot_num, pvals):
+                proposals = proposals ⊲ pmax(pvals); // Wtf is this?
+                ∀(s,c) ∈ proposals : spawn(Commander(self, acceptors, replicas, (ballot_num, s, c)));
+                active = true;
+            𝚌𝚊𝚜𝚎 (preempted, (r′, λ′)):
+                𝚒𝚏 (r′,λ′) > ballot_num {
+                    active = false;
+                    ballot_num = (r′ + 1, self);
+                    spawn(Scout(self, acceptors, ballot_num));
+                }
+            𝚎𝚗𝚍 𝚌𝚊𝚜𝚎
+        }
+    }
+𝚎𝚗𝚍 𝚙𝚛𝚘𝚌𝚎𝚜𝚜
