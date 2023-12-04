@@ -6,8 +6,8 @@ from dir import *
 import sys
 
 replica = Replica(int(sys.argv[1]))
-leader = Leader(int(sys.argv[2]))
-acceptor = Acceptor(int(sys.argv[3]))
+leader = Leader(int(sys.argv[1]))
+acceptor = Acceptor(int(sys.argv[1]))
 
 replica_thread = threading.Thread(target=replica.listen).start()
 leader_thread = threading.Thread(target=leader.listen).start()

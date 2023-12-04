@@ -40,7 +40,7 @@ class Acceptor():
         """
         with self.lock_ballot_num:
             if message.ballot > self.ballot_num:
-                self.ballot_num = message.ballot_num
+                self.ballot_num = message.ballot
             return P1B(MessageType.P1B, message.ballot.leader_id, self.id, self.ballot_num, self.get_latest_accepts())
         # TODO: UDP packet size < accepted
 
@@ -51,8 +51,8 @@ class Acceptor():
         """
         with self.lock_accepted:
             with self.lock_ballot_num:
-                if message.ballot_num == self.ballot_num:
-                    self.accepted += [(message.slot, message.ballot_num, message.command)]
+                if message.ballot == self.ballot_num:
+                    self.accepted += [(message.slot, message.ballot, message.command)]
                 return P2B(MessageType.P2B, message.leader_id, self.id, self.ballot_num)
         
     def handle(self, message: Message) -> (P1B | P2B):
